@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Function Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>Complex Function Visualizer</h1>
+            <div class="controls">
+                <div class="function-input">
+                    <label for="function-input">Function f(z) = </label>
+                    <input type="text" id="function-input" placeholder="z^2" value="z^2">
+                    <button id="parse-function">Apply</button>
+                </div>
+                <div class="mode-controls">
+                    <label>
+                        <input type="radio" name="mode" value="immediate" checked> Immediate
+                    </label>
+                    <label>
+                        <input type="radio" name="mode" value="parametric"> Parametric
+                    </label>
+                </div>
+                <div class="animation-controls" id="animation-controls" style="display: none;">
+                    <label for="speed">Speed:</label>
+                    <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1">
+                    <button id="play-pause">Play</button>
+                    <button id="reset">Reset</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <div class="window domain-window">
+                    <h3>Domain (Complex Plane)</h3>
+                    <canvas id="domain-canvas" width="600" height="600"></canvas>
+                    <div class="canvas-info">
+                        <span id="domain-center">Center: (0, 0)</span>
+                        <span id="domain-scale">Scale: 1.0</span>
+                    </div>
+                </div>
+
+                <div class="window range-window">
+                    <h3>Range (Transformed)</h3>
+                    <canvas id="range-canvas" width="600" height="600"></canvas>
+                    <div class="canvas-info">
+                        <span id="range-center">Center: (0, 0)</span>
+                        <span id="range-scale">Scale: 1.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="parameters-panel" id="parameters-panel">
+                <h3>Parameters</h3>
+                <div id="parameter-sliders"></div>
+            </div>
+        </div>
+
+        <div class="export-controls">
+            <button id="export-svg">Export as SVG</button>
+            <button id="export-png">Export as PNG</button>
+        </div>
+    </div>
+
+    <script src="complex.js"></script>
+    <script src="parser.js"></script>
+    <script src="renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
