@@ -222,9 +222,9 @@ class ComplexRenderer {
     }
 
     drawTransformedGridLines(transformFunction, t) {
-        const spacing = 0.5;
-        const range = 5;
-        const steps = 50;
+        const spacing = 0.25;  // Smaller spacing for finer grid
+        const range = 6;       // Slightly larger range
+        const steps = 200;     // Much higher resolution
 
         // Vertical lines (constant real part)
         for (let real = -range; real <= range; real += spacing) {
@@ -271,7 +271,7 @@ class ComplexRenderer {
 
     drawTransformedRadialLines(transformFunction, t) {
         const maxRadius = 5;
-        const steps = 100;
+        const steps = 300;  // Higher resolution for smoother curves
 
         for (let i = 0; i < this.radialLines; i++) {
             const angle = (2 * Math.PI * i) / this.radialLines;
@@ -298,7 +298,7 @@ class ComplexRenderer {
 
     drawTransformedCircles(transformFunction, t) {
         const maxRadius = 5;
-        const steps = 100;
+        const steps = 300;  // Higher resolution for smoother curves
 
         for (let i = 1; i <= this.concentricCircles; i++) {
             const radius = i;
@@ -487,9 +487,9 @@ class ComplexRenderer {
     }
 
     renderTransformedGridToSVG(svg, transformFunction, t, createPath) {
-        const spacing = 0.5;
-        const range = 5;
-        const steps = 50;
+        const spacing = 0.25;  // Smaller spacing for finer grid
+        const range = 6;       // Slightly larger range
+        const steps = 200;     // Much higher resolution
 
         // Transform grid lines
         let gridPath = '';
@@ -537,7 +537,7 @@ class ComplexRenderer {
         // Transform radial lines
         let radialPath = '';
         const maxRadius = 5;
-        const radialSteps = 100;
+        const radialSteps = 300;  // Higher resolution for smoother radial lines
 
         for (let i = 0; i < this.radialLines; i++) {
             const angle = (2 * Math.PI * i) / this.radialLines;
@@ -564,7 +564,7 @@ class ComplexRenderer {
 
         // Transform concentric circles
         let circlesPath = '';
-        const circleSteps = 100;
+        const circleSteps = 400;  // Higher resolution for smoother circles
 
         for (let i = 1; i <= this.concentricCircles; i++) {
             const radius = i;
