@@ -30,6 +30,10 @@ class ComplexRenderer {
         this.animationTime = 0;
         this.isAnimating = false;
 
+        // Current render state
+        this.currentTransformFunction = null;
+        this.currentT = 1;
+
         this.setupEventListeners();
     }
 
@@ -61,7 +65,7 @@ class ComplexRenderer {
             lastX = currentX;
             lastY = currentY;
 
-            this.render();
+            this.render(this.currentTransformFunction, this.currentT);
             this.updateInfo();
         });
 
@@ -93,7 +97,7 @@ class ComplexRenderer {
             this.centerX = complexX - (mouseX - this.width / 2) / this.scale;
             this.centerY = complexY + (mouseY - this.height / 2) / this.scale;
 
-            this.render();
+            this.render(this.currentTransformFunction, this.currentT);
             this.updateInfo();
         });
     }
@@ -338,6 +342,10 @@ class ComplexRenderer {
     }
 
     render(transformFunction = null, t = 1) {
+        // Store current render state for mouse interactions
+        this.currentTransformFunction = transformFunction;
+        this.currentT = t;
+
         this.clear();
 
         if (transformFunction) {

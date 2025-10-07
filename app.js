@@ -368,7 +368,7 @@ class ComplexFunctionApp {
         playButton.disabled = this.isPlaying || isAtEnd;
         pauseButton.disabled = !this.isPlaying;
         stopButton.disabled = !this.isPlaying && this.animationTime === 0;
-        restartButton.disabled = this.animationTime === 0;
+        restartButton.disabled = false; // Restart should always be available
         progressSlider.disabled = false;
 
         if (isAtEnd && this.isPlaying) {
