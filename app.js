@@ -10,6 +10,7 @@ class ComplexFunctionApp {
         this.animationTime = 0;
         this.animationSpeed = 1;
         this.isPlaying = false;
+        this.updatingProgress = false;
 
         // Initialize renderers
         this.domainRenderer = new ComplexRenderer('domain-canvas', {
@@ -67,7 +68,8 @@ class ComplexFunctionApp {
         // Animation controls
         const speedControl = document.getElementById('speed');
         const speedDisplay = document.getElementById('speed-display');
-        const playPauseButton = document.getElementById('play-pause');
+        const playButton = document.getElementById('play');
+        const pauseButton = document.getElementById('pause');
         const stopButton = document.getElementById('stop');
         const restartButton = document.getElementById('restart');
         const progressSlider = document.getElementById('progress');
@@ -78,8 +80,12 @@ class ComplexFunctionApp {
             speedDisplay.textContent = `${this.animationSpeed.toFixed(1)}x`;
         });
 
-        playPauseButton.addEventListener('click', () => {
-            this.toggleAnimation();
+        playButton.addEventListener('click', () => {
+            this.startAnimation();
+        });
+
+        pauseButton.addEventListener('click', () => {
+            this.pauseAnimation();
         });
 
         stopButton.addEventListener('click', () => {
@@ -91,8 +97,19 @@ class ComplexFunctionApp {
         });
 
         progressSlider.addEventListener('input', (e) => {
-            const progress = parseFloat(e.target.value);
-            this.setAnimationProgress(progress);
+            // Prevent recursive updates and only respond to user interaction
+            if (!this.updatingProgress && document.activeElement === progressSlider) {
+                const progress = parseFloat(e.target.value);
+                this.setAnimationProgress(progress);
+            }
+        });
+
+        // Also handle slider changes on mouse up for better UX
+        progressSlider.addEventListener('change', (e) => {
+            if (!this.updatingProgress) {
+                const progress = parseFloat(e.target.value);
+                this.setAnimationProgress(progress);
+            }
         });
 
         // Export controls
@@ -323,26 +340,33 @@ class ComplexFunctionApp {
         const progressDisplay = document.getElementById('progress-display');
         const progress = this.getAnimationProgress();
 
-        progressSlider.value = progress;
+        // Set flag to prevent recursive updates
+        this.updatingProgress = true;
+
+        // Only update slider if user isn't actively dragging it
+        if (document.activeElement !== progressSlider) {
+            progressSlider.value = progress;
+        }
         progressDisplay.textContent = `${progress.toFixed(1)}%`;
+
+        // Reset flag after a brief delay
+        setTimeout(() => {
+            this.updatingProgress = false;
+        }, 10);
     }
 
     updateControlButtons() {
-        const playPauseButton = document.getElementById('play-pause');
+        const playButton = document.getElementById('play');
+        const pauseButton = document.getElementById('pause');
         const stopButton = document.getElementById('stop');
         const restartButton = document.getElementById('restart');
         const progressSlider = document.getElementById('progress');
 
         const isAtEnd = this.animationTime >= 5;
 
-        if (this.isPlaying) {
-            playPauseButton.textContent = '⏸️';
-            playPauseButton.title = 'Pause';
-        } else {
-            playPauseButton.textContent = '▶️';
-            playPauseButton.title = 'Play';
-        }
-
+        // Enable/disable buttons based on state
+        playButton.disabled = this.isPlaying || isAtEnd;
+        pauseButton.disabled = !this.isPlaying;
         stopButton.disabled = !this.isPlaying && this.animationTime === 0;
         restartButton.disabled = this.animationTime === 0;
         progressSlider.disabled = false;
@@ -352,13 +376,6 @@ class ComplexFunctionApp {
         }
     }
 
-    toggleAnimation() {
-        if (this.isPlaying) {
-            this.pauseAnimation();
-        } else {
-            this.startAnimation();
-        }
-    }
 
     startAnimation() {
         // If at end, restart from beginning
