@@ -405,8 +405,21 @@ class FunctionParser {
     // Get default parameter values
     getDefaultParameters() {
         const defaults = {};
+
+        // Special defaults for Möbius transformation parameters
+        const mobiusDefaults = {
+            'a': new Complex(2, 0),  // Re(a) = 2, Im(a) = 0
+            'b': new Complex(1, 0),  // Re(b) = 1, Im(b) = 0
+            'c': new Complex(1, 0),  // Re(c) = 1, Im(c) = 0
+            'd': new Complex(1, 0)   // Re(d) = 1, Im(d) = 0
+        };
+
         for (const [name, value] of this.parameters) {
-            defaults[name] = value;
+            if (mobiusDefaults.hasOwnProperty(name)) {
+                defaults[name] = mobiusDefaults[name];
+            } else {
+                defaults[name] = new Complex(value, 0);
+            }
         }
         return defaults;
     }
