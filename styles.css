@@ -81,26 +81,81 @@ body {
 
 .animation-controls {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 10px;
+    align-items: flex-start;
+    min-width: 300px;
 }
 
-.animation-controls input[type="range"] {
-    width: 100px;
+.video-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
-.animation-controls button {
-    padding: 6px 12px;
-    background: #27ae60;
+.control-btn {
+    padding: 8px 12px;
+    background: #3498db;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 16px;
+    min-width: 45px;
+    transition: all 0.2s ease;
 }
 
-.animation-controls button:hover {
-    background: #229954;
+.control-btn:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.control-btn:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.progress-container, .speed-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.progress-container label, .speed-container label {
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 60px;
+}
+
+.progress-slider, .speed-container input[type="range"] {
+    flex: 1;
+    min-width: 120px;
+}
+
+.progress-slider {
+    background: #e0e0e0;
+}
+
+.progress-slider::-webkit-slider-thumb {
+    background: #e74c3c;
+}
+
+.progress-slider::-moz-range-thumb {
+    background: #e74c3c;
+}
+
+#progress-display, #speed-display {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #666;
+    min-width: 40px;
+    text-align: right;
 }
 
 .main-content {

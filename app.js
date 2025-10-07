@@ -25,7 +25,20 @@ class ComplexFunctionApp {
         });
 
         this.setupEventHandlers();
+        this.initializeControls();
         this.parseDefaultFunction();
+    }
+
+    initializeControls() {
+        // Initialize speed display
+        const speedDisplay = document.getElementById('speed-display');
+        if (speedDisplay) {
+            speedDisplay.textContent = `${this.animationSpeed.toFixed(1)}x`;
+        }
+
+        // Initialize progress display
+        this.updateProgressDisplay();
+        this.updateControlButtons();
     }
 
     setupEventHandlers() {
@@ -53,19 +66,33 @@ class ComplexFunctionApp {
 
         // Animation controls
         const speedControl = document.getElementById('speed');
+        const speedDisplay = document.getElementById('speed-display');
         const playPauseButton = document.getElementById('play-pause');
-        const resetButton = document.getElementById('reset');
+        const stopButton = document.getElementById('stop');
+        const restartButton = document.getElementById('restart');
+        const progressSlider = document.getElementById('progress');
+        const progressDisplay = document.getElementById('progress-display');
 
         speedControl.addEventListener('input', (e) => {
             this.animationSpeed = parseFloat(e.target.value);
+            speedDisplay.textContent = `${this.animationSpeed.toFixed(1)}x`;
         });
 
         playPauseButton.addEventListener('click', () => {
             this.toggleAnimation();
         });
 
-        resetButton.addEventListener('click', () => {
-            this.resetAnimation();
+        stopButton.addEventListener('click', () => {
+            this.stopAnimation();
+        });
+
+        restartButton.addEventListener('click', () => {
+            this.restartAnimation();
+        });
+
+        progressSlider.addEventListener('input', (e) => {
+            const progress = parseFloat(e.target.value);
+            this.setAnimationProgress(progress);
         });
 
         // Export controls
@@ -270,25 +297,87 @@ class ComplexFunctionApp {
     }
 
     getAnimationParameter() {
-        // Convert animation time to parameter t (0 to 1)
-        return Math.min(this.animationTime / 5, 1); // 5-second cycle
+        // Convert animation time to parameter t (0 to 1) over 5 seconds
+        return Math.min(this.animationTime / 5, 1);
+    }
+
+    getAnimationProgress() {
+        // Return progress as percentage (0-100)
+        return Math.min((this.animationTime / 5) * 100, 100);
+    }
+
+    setAnimationProgress(progressPercent) {
+        // Set animation time based on progress percentage
+        this.animationTime = (progressPercent / 100) * 5;
+        this.updateVisualization();
+        this.updateProgressDisplay();
+
+        // If we're at the end, stop playing
+        if (progressPercent >= 100) {
+            this.stopAnimation();
+        }
+    }
+
+    updateProgressDisplay() {
+        const progressSlider = document.getElementById('progress');
+        const progressDisplay = document.getElementById('progress-display');
+        const progress = this.getAnimationProgress();
+
+        progressSlider.value = progress;
+        progressDisplay.textContent = `${progress.toFixed(1)}%`;
+    }
+
+    updateControlButtons() {
+        const playPauseButton = document.getElementById('play-pause');
+        const stopButton = document.getElementById('stop');
+        const restartButton = document.getElementById('restart');
+        const progressSlider = document.getElementById('progress');
+
+        const isAtEnd = this.animationTime >= 5;
+
+        if (this.isPlaying) {
+            playPauseButton.textContent = '⏸️';
+            playPauseButton.title = 'Pause';
+        } else {
+            playPauseButton.textContent = '▶️';
+            playPauseButton.title = 'Play';
+        }
+
+        stopButton.disabled = !this.isPlaying && this.animationTime === 0;
+        restartButton.disabled = this.animationTime === 0;
+        progressSlider.disabled = false;
+
+        if (isAtEnd && this.isPlaying) {
+            this.stopAnimation();
+        }
     }
 
     toggleAnimation() {
-        const button = document.getElementById('play-pause');
-
         if (this.isPlaying) {
-            this.stopAnimation();
-            button.textContent = 'Play';
+            this.pauseAnimation();
         } else {
             this.startAnimation();
-            button.textContent = 'Pause';
         }
     }
 
     startAnimation() {
+        // If at end, restart from beginning
+        if (this.animationTime >= 5) {
+            this.animationTime = 0;
+        }
+
         this.isPlaying = true;
         this.animate();
+        this.updateControlButtons();
+    }
+
+    pauseAnimation() {
+        this.isPlaying = false;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        this.updateControlButtons();
     }
 
     stopAnimation() {
@@ -297,27 +386,36 @@ class ComplexFunctionApp {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        this.animationTime = 0;
+        this.updateVisualization();
+        this.updateProgressDisplay();
+        this.updateControlButtons();
     }
 
-    resetAnimation() {
+    restartAnimation() {
         this.stopAnimation();
-        this.animationTime = 0;
-        document.getElementById('play-pause').textContent = 'Play';
-        this.updateVisualization();
+        this.startAnimation();
     }
 
     animate() {
         if (!this.isPlaying) return;
 
-        this.animationTime += 0.016 * this.animationSpeed; // ~60fps
+        const deltaTime = 0.016 * this.animationSpeed; // ~60fps with speed multiplier
+        this.animationTime += deltaTime;
 
-        // Loop animation
-        if (this.animationTime > 5) {
-            this.animationTime = 0;
+        // Stop at end instead of looping
+        if (this.animationTime >= 5) {
+            this.animationTime = 5;
+            this.stopAnimation();
         }
 
         this.updateVisualization();
-        this.animationId = requestAnimationFrame(() => this.animate());
+        this.updateProgressDisplay();
+        this.updateControlButtons();
+
+        if (this.isPlaying) {
+            this.animationId = requestAnimationFrame(() => this.animate());
+        }
     }
 
     exportSVG() {
