@@ -109,39 +109,128 @@ class ComplexFunctionApp {
         }
 
         parameters.forEach(param => {
-            const sliderDiv = document.createElement('div');
-            sliderDiv.className = 'parameter-slider';
-
-            const label = document.createElement('label');
-            label.textContent = param;
-
-            const slider = document.createElement('input');
-            slider.type = 'range';
-            slider.min = '-5';
-            slider.max = '5';
-            slider.step = '0.1';
-            slider.value = this.currentParameters[param] || 1;
-            slider.id = `param-${param}`;
-
-            const valueDisplay = document.createElement('div');
-            valueDisplay.className = 'parameter-value';
-            valueDisplay.textContent = slider.value;
-
-            slider.addEventListener('input', (e) => {
-                const value = parseFloat(e.target.value);
-                this.currentParameters[param] = value;
-                valueDisplay.textContent = value.toFixed(1);
-                this.updateVisualization();
-            });
-
-            sliderDiv.appendChild(label);
-            sliderDiv.appendChild(slider);
-            sliderDiv.appendChild(valueDisplay);
-            container.appendChild(sliderDiv);
+            this.createComplexParameterSlider(container, param);
         });
 
         // Show parameters panel
         document.getElementById('parameters-panel').style.display = 'block';
+    }
+
+    createComplexParameterSlider(container, param) {
+        const parameterDiv = document.createElement('div');
+        parameterDiv.className = 'complex-parameter';
+
+        const title = document.createElement('h4');
+        title.textContent = param;
+        title.style.marginBottom = '10px';
+        title.style.color = '#2c3e50';
+        parameterDiv.appendChild(title);
+
+        // Initialize parameter as complex number if not already set
+        if (!this.currentParameters[param] || typeof this.currentParameters[param] === 'number') {
+            this.currentParameters[param] = new Complex(this.currentParameters[param] || 1, 0);
+        }
+
+        // Real part slider
+        const realDiv = document.createElement('div');
+        realDiv.className = 'parameter-slider';
+
+        const realLabel = document.createElement('label');
+        realLabel.textContent = `Re(${param})`;
+        realLabel.style.fontSize = '14px';
+
+        const realSlider = document.createElement('input');
+        realSlider.type = 'range';
+        realSlider.min = '-5';
+        realSlider.max = '5';
+        realSlider.step = '0.1';
+        realSlider.value = this.currentParameters[param].real;
+        realSlider.id = `param-${param}-real`;
+
+        const realDisplay = document.createElement('div');
+        realDisplay.className = 'parameter-value';
+        realDisplay.textContent = this.currentParameters[param].real.toFixed(1);
+
+        realSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.currentParameters[param].real = value;
+            realDisplay.textContent = value.toFixed(1);
+            this.updateComplexParameterDisplay(param);
+            this.updateVisualization();
+        });
+
+        realDiv.appendChild(realLabel);
+        realDiv.appendChild(realSlider);
+        realDiv.appendChild(realDisplay);
+
+        // Imaginary part slider
+        const imagDiv = document.createElement('div');
+        imagDiv.className = 'parameter-slider';
+
+        const imagLabel = document.createElement('label');
+        imagLabel.textContent = `Im(${param})`;
+        imagLabel.style.fontSize = '14px';
+
+        const imagSlider = document.createElement('input');
+        imagSlider.type = 'range';
+        imagSlider.min = '-5';
+        imagSlider.max = '5';
+        imagSlider.step = '0.1';
+        imagSlider.value = this.currentParameters[param].imag;
+        imagSlider.id = `param-${param}-imag`;
+
+        const imagDisplay = document.createElement('div');
+        imagDisplay.className = 'parameter-value';
+        imagDisplay.textContent = this.currentParameters[param].imag.toFixed(1);
+
+        imagSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            this.currentParameters[param].imag = value;
+            imagDisplay.textContent = value.toFixed(1);
+            this.updateComplexParameterDisplay(param);
+            this.updateVisualization();
+        });
+
+        imagDiv.appendChild(imagLabel);
+        imagDiv.appendChild(imagSlider);
+        imagDiv.appendChild(imagDisplay);
+
+        // Combined display
+        const complexDisplay = document.createElement('div');
+        complexDisplay.className = 'complex-parameter-display';
+        complexDisplay.id = `complex-display-${param}`;
+        complexDisplay.style.textAlign = 'center';
+        complexDisplay.style.marginTop = '5px';
+        complexDisplay.style.padding = '5px';
+        complexDisplay.style.backgroundColor = '#f0f0f0';
+        complexDisplay.style.borderRadius = '3px';
+        complexDisplay.style.fontFamily = 'monospace';
+        complexDisplay.style.fontSize = '12px';
+
+        this.updateComplexParameterDisplay(param, complexDisplay);
+
+        parameterDiv.appendChild(realDiv);
+        parameterDiv.appendChild(imagDiv);
+        parameterDiv.appendChild(complexDisplay);
+
+        // Add separator
+        const separator = document.createElement('hr');
+        separator.style.margin = '15px 0';
+        separator.style.border = '1px solid #eee';
+        parameterDiv.appendChild(separator);
+
+        container.appendChild(parameterDiv);
+    }
+
+    updateComplexParameterDisplay(param, displayElement = null) {
+        if (!displayElement) {
+            displayElement = document.getElementById(`complex-display-${param}`);
+        }
+
+        if (displayElement && this.currentParameters[param]) {
+            const complex = this.currentParameters[param];
+            displayElement.textContent = `${param} = ${complex.toString()}`;
+        }
     }
 
     handleModeChange(mode) {
@@ -228,17 +317,28 @@ class ComplexFunctionApp {
 
     exportSVG() {
         try {
-            // Export both canvases
-            const domainSVG = this.domainRenderer.exportAsSVG();
-            const rangeSVG = this.rangeRenderer.exportAsSVG();
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            let t = 1;
+            if (mode === 'parametric') {
+                t = this.getAnimationParameter();
+            }
 
-            // Create combined SVG
-            const combinedSVG = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
-                    <g id="domain">${domainSVG}</g>
-                    <g id="range" transform="translate(600, 0)">${rangeSVG}</g>
-                </svg>
-            `;
+            // Export both canvases with current state
+            const domainSVG = this.domainRenderer.exportAsSVG();
+            const rangeSVG = this.rangeRenderer.exportAsSVG(this.currentFunction, t);
+
+            // Create combined SVG with proper structure
+            const combinedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+    <rect width="1200" height="600" fill="#f8f9fa"/>
+    <g id="domain">
+        ${domainSVG.replace('<?xml version="1.0" encoding="UTF-8"?>', '').replace(/<svg[^>]*>/, '').replace('</svg>', '')}
+    </g>
+    <g id="range" transform="translate(600, 0)">
+        ${rangeSVG.replace('<?xml version="1.0" encoding="UTF-8"?>', '').replace(/<svg[^>]*>/, '').replace('</svg>', '')}
+    </g>
+    <text x="300" y="30" text-anchor="middle" font-family="Arial" font-size="16" fill="#2c3e50">Domain (Complex Plane)</text>
+    <text x="900" y="30" text-anchor="middle" font-family="Arial" font-size="16" fill="#2c3e50">Range (Transformed)</text>
+</svg>`;
 
             this.downloadFile(combinedSVG, 'complex-function-visualization.svg', 'image/svg+xml');
         } catch (error) {

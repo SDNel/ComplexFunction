@@ -362,12 +362,13 @@ class ComplexRenderer {
     }
 
     // Export functionality
-    exportAsSVG() {
+    exportAsSVG(transformFunction = null, t = 1) {
         // Create SVG element
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('width', this.width);
         svg.setAttribute('height', this.height);
         svg.setAttribute('viewBox', `0 0 ${this.width} ${this.height}`);
+        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
         // Add background
         const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -376,9 +377,211 @@ class ComplexRenderer {
         bg.setAttribute('fill', this.colors.background);
         svg.appendChild(bg);
 
-        // Convert canvas to SVG (simplified version)
+        // Render content to SVG
+        if (transformFunction) {
+            this.renderGridToSVG(svg, transformFunction, t);
+        } else {
+            this.renderGridToSVG(svg);
+        }
+
         const svgString = new XMLSerializer().serializeToString(svg);
         return svgString;
+    }
+
+    renderGridToSVG(svg, transformFunction = null, t = 1) {
+        // Helper to create SVG path
+        const createPath = (d, stroke, strokeWidth = 1) => {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', stroke);
+            path.setAttribute('stroke-width', strokeWidth);
+            path.setAttribute('fill', 'none');
+            return path;
+        };
+
+        if (transformFunction) {
+            // Render transformed grid
+            this.renderTransformedGridToSVG(svg, transformFunction, t, createPath);
+        } else {
+            // Render regular grid
+            this.renderRegularGridToSVG(svg, createPath);
+        }
+    }
+
+    renderRegularGridToSVG(svg, createPath) {
+        // Grid lines
+        let spacing = this.gridSpacing;
+        while (spacing * this.scale < 20) spacing *= 2;
+        while (spacing * this.scale > 100) spacing /= 2;
+
+        let gridPath = '';
+
+        // Vertical lines
+        const startX = Math.floor((this.centerX - this.width / (2 * this.scale)) / spacing) * spacing;
+        const endX = Math.ceil((this.centerX + this.width / (2 * this.scale)) / spacing) * spacing;
+
+        for (let x = startX; x <= endX; x += spacing) {
+            const canvasX = (x - this.centerX) * this.scale + this.width / 2;
+            if (canvasX >= 0 && canvasX <= this.width) {
+                gridPath += `M ${canvasX} 0 L ${canvasX} ${this.height} `;
+            }
+        }
+
+        // Horizontal lines
+        const startY = Math.floor((this.centerY - this.height / (2 * this.scale)) / spacing) * spacing;
+        const endY = Math.ceil((this.centerY + this.height / (2 * this.scale)) / spacing) * spacing;
+
+        for (let y = startY; y <= endY; y += spacing) {
+            const canvasY = -(y - this.centerY) * this.scale + this.height / 2;
+            if (canvasY >= 0 && canvasY <= this.height) {
+                gridPath += `M 0 ${canvasY} L ${this.width} ${canvasY} `;
+            }
+        }
+
+        if (gridPath) {
+            svg.appendChild(createPath(gridPath, this.colors.grid));
+        }
+
+        // Radial lines
+        const center = this.complexToCanvas(new Complex(0, 0));
+        const maxRadius = Math.max(this.width, this.height);
+        let radialPath = '';
+
+        for (let i = 0; i < this.radialLines; i++) {
+            const angle = (2 * Math.PI * i) / this.radialLines;
+            const endX = center.x + maxRadius * Math.cos(angle);
+            const endY = center.y + maxRadius * Math.sin(angle);
+            radialPath += `M ${center.x} ${center.y} L ${endX} ${endY} `;
+        }
+
+        if (radialPath) {
+            svg.appendChild(createPath(radialPath, this.colors.radial));
+        }
+
+        // Concentric circles
+        let circleSpacing = 1;
+        while (circleSpacing * this.scale < 30) circleSpacing *= 2;
+        while (circleSpacing * this.scale > 120) circleSpacing /= 2;
+
+        for (let i = 1; i <= this.concentricCircles; i++) {
+            const radius = i * circleSpacing * this.scale;
+            if (radius > 5) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', center.x);
+                circle.setAttribute('cy', center.y);
+                circle.setAttribute('r', radius);
+                circle.setAttribute('stroke', this.colors.circles);
+                circle.setAttribute('stroke-width', 1);
+                circle.setAttribute('fill', 'none');
+                svg.appendChild(circle);
+            }
+        }
+    }
+
+    renderTransformedGridToSVG(svg, transformFunction, t, createPath) {
+        const spacing = 0.5;
+        const range = 5;
+        const steps = 50;
+
+        // Transform grid lines
+        let gridPath = '';
+
+        // Vertical lines
+        for (let real = -range; real <= range; real += spacing) {
+            let pathData = '';
+            for (let i = 0; i <= steps; i++) {
+                const imag = -range + (2 * range * i) / steps;
+                const z = new Complex(real, imag);
+                const transformed = this.interpolateTransform(z, transformFunction, t);
+                const canvas = this.complexToCanvas(transformed);
+
+                if (i === 0) {
+                    pathData += `M ${canvas.x} ${canvas.y} `;
+                } else {
+                    pathData += `L ${canvas.x} ${canvas.y} `;
+                }
+            }
+            gridPath += pathData;
+        }
+
+        // Horizontal lines
+        for (let imag = -range; imag <= range; imag += spacing) {
+            let pathData = '';
+            for (let i = 0; i <= steps; i++) {
+                const real = -range + (2 * range * i) / steps;
+                const z = new Complex(real, imag);
+                const transformed = this.interpolateTransform(z, transformFunction, t);
+                const canvas = this.complexToCanvas(transformed);
+
+                if (i === 0) {
+                    pathData += `M ${canvas.x} ${canvas.y} `;
+                } else {
+                    pathData += `L ${canvas.x} ${canvas.y} `;
+                }
+            }
+            gridPath += pathData;
+        }
+
+        if (gridPath) {
+            svg.appendChild(createPath(gridPath, this.colors.grid));
+        }
+
+        // Transform radial lines
+        let radialPath = '';
+        const maxRadius = 5;
+        const radialSteps = 100;
+
+        for (let i = 0; i < this.radialLines; i++) {
+            const angle = (2 * Math.PI * i) / this.radialLines;
+            let pathData = '';
+
+            for (let j = 0; j <= radialSteps; j++) {
+                const r = (maxRadius * j) / radialSteps;
+                const z = Complex.fromPolar(r, angle);
+                const transformed = this.interpolateTransform(z, transformFunction, t);
+                const canvas = this.complexToCanvas(transformed);
+
+                if (j === 0) {
+                    pathData += `M ${canvas.x} ${canvas.y} `;
+                } else {
+                    pathData += `L ${canvas.x} ${canvas.y} `;
+                }
+            }
+            radialPath += pathData;
+        }
+
+        if (radialPath) {
+            svg.appendChild(createPath(radialPath, this.colors.radial));
+        }
+
+        // Transform concentric circles
+        let circlesPath = '';
+        const circleSteps = 100;
+
+        for (let i = 1; i <= this.concentricCircles; i++) {
+            const radius = i;
+            if (radius > maxRadius) continue;
+
+            let pathData = '';
+            for (let j = 0; j <= circleSteps; j++) {
+                const angle = (2 * Math.PI * j) / circleSteps;
+                const z = Complex.fromPolar(radius, angle);
+                const transformed = this.interpolateTransform(z, transformFunction, t);
+                const canvas = this.complexToCanvas(transformed);
+
+                if (j === 0) {
+                    pathData += `M ${canvas.x} ${canvas.y} `;
+                } else {
+                    pathData += `L ${canvas.x} ${canvas.y} `;
+                }
+            }
+            pathData += 'Z '; // Close path
+            circlesPath += pathData;
+        }
+
+        if (circlesPath) {
+            svg.appendChild(createPath(circlesPath, this.colors.circles));
+        }
     }
 
     exportAsPNG() {

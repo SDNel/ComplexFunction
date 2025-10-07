@@ -83,7 +83,77 @@ class FunctionParser {
             }
         }
 
-        return tokens;
+        // Insert implicit multiplication tokens
+        return this.insertImplicitMultiplication(tokens);
+    }
+
+    // Insert implicit multiplication where needed
+    insertImplicitMultiplication(tokens) {
+        const result = [];
+
+        for (let i = 0; i < tokens.length; i++) {
+            const current = tokens[i];
+            const next = tokens[i + 1];
+
+            result.push(current);
+
+            if (next && this.shouldInsertMultiplication(current, next)) {
+                result.push({ type: 'operator', value: '*' });
+            }
+        }
+
+        return result;
+    }
+
+    // Determine if implicit multiplication should be inserted
+    shouldInsertMultiplication(current, next) {
+        // Number followed by identifier: 2z -> 2*z
+        if (current.type === 'number' && next.type === 'identifier') {
+            return true;
+        }
+
+        // Identifier followed by number: z2 -> z*2 (but be careful with function names)
+        if (current.type === 'identifier' && next.type === 'number') {
+            // Don't insert if current looks like a function name that might take arguments
+            const knownFunctions = ['sin', 'cos', 'exp', 'log', 'sqrt', 'abs', 'arg', 'real', 'imag', 'conj'];
+            if (!knownFunctions.includes(current.value)) {
+                return true;
+            }
+        }
+
+        // Identifier followed by identifier: az -> a*z
+        if (current.type === 'identifier' && next.type === 'identifier') {
+            // Special case: don't split known function names
+            const combined = current.value + next.value;
+            const knownFunctions = ['sin', 'cos', 'exp', 'log', 'sqrt', 'abs', 'arg', 'real', 'imag', 'conj'];
+            if (!knownFunctions.includes(combined)) {
+                return true;
+            }
+        }
+
+        // Number/identifier followed by opening parenthesis: 2(x) -> 2*(x), a(x) -> a*(x)
+        if ((current.type === 'number' || current.type === 'identifier') && next.type === 'lparen') {
+            // Don't insert if current is a known function name
+            if (current.type === 'identifier') {
+                const knownFunctions = ['sin', 'cos', 'exp', 'log', 'sqrt', 'abs', 'arg', 'real', 'imag', 'conj'];
+                if (knownFunctions.includes(current.value)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Closing parenthesis followed by number/identifier: (x)2 -> (x)*2, (x)y -> (x)*y
+        if (current.type === 'rparen' && (next.type === 'number' || next.type === 'identifier')) {
+            return true;
+        }
+
+        // Closing parenthesis followed by opening parenthesis: (x)(y) -> (x)*(y)
+        if (current.type === 'rparen' && next.type === 'lparen') {
+            return true;
+        }
+
+        return false;
     }
 
     // Parse expression with operator precedence
@@ -221,7 +291,6 @@ class FunctionParser {
         const paramNames = Array.from(this.parameters.keys());
         const funcStr = `
             return function(z, params = {}) {
-                ${paramNames.map(p => `const ${p} = params.${p} !== undefined ? params.${p} : 1;`).join('\n')}
                 const Complex = window.Complex;
                 const ComplexFunctions = window.ComplexFunctions;
 
@@ -248,7 +317,7 @@ class FunctionParser {
                 return 'z';
 
             case 'parameter':
-                return `new Complex(${node.name}, 0)`;
+                return `params.${node.name} || new Complex(1, 0)`;
 
             case 'binary':
                 const left = this.generateCode(node.left);
