@@ -32,11 +32,14 @@ class FunctionParser {
         const tokens = [];
         let i = 0;
 
-        // Remove spaces
-        expression = expression.replace(/\s+/g, '');
-
         while (i < expression.length) {
             const char = expression[i];
+
+            // Skip whitespace but don't remove it completely - use it as implicit multiplication cue
+            if (/\s/.test(char)) {
+                i++;
+                continue;
+            }
 
             if (/[0-9]/.test(char)) {
                 // Number
@@ -47,12 +50,30 @@ class FunctionParser {
                 }
                 tokens.push({ type: 'number', value: parseFloat(num) });
             } else if (/[a-zA-Z]/.test(char)) {
-                // Identifier (function or variable)
+                // Identifier (function or variable) - but be careful about single letters
                 let id = '';
-                while (i < expression.length && /[a-zA-Z0-9]/.test(expression[i])) {
-                    id += expression[i];
+
+                // For mathematical expressions, prefer single-letter variables
+                // Check if this could be a known function first
+                let possibleFunction = '';
+                let tempI = i;
+                while (tempI < expression.length && /[a-zA-Z]/.test(expression[tempI])) {
+                    possibleFunction += expression[tempI];
+                    tempI++;
+                }
+
+                const knownFunctions = ['sin', 'cos', 'exp', 'log', 'sqrt', 'abs', 'arg', 'real', 'imag', 'conj'];
+
+                if (knownFunctions.includes(possibleFunction)) {
+                    // It's a known function, take the whole thing
+                    id = possibleFunction;
+                    i = tempI;
+                } else {
+                    // Take only single letter for mathematical variables
+                    id = char;
                     i++;
                 }
+
                 tokens.push({ type: 'identifier', value: id });
             } else if (char === '+') {
                 tokens.push({ type: 'operator', value: '+' });
