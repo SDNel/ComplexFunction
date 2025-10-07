@@ -73,8 +73,23 @@
         </div>
 
         <div class="export-controls">
-            <button id="export-svg">Export as SVG</button>
-            <button id="export-png">Export as PNG</button>
+            <div class="export-options">
+                <h3>Export Options</h3>
+                <div class="resolution-selector">
+                    <label for="export-resolution">PNG Resolution:</label>
+                    <select id="export-resolution">
+                        <option value="1200x600">Standard (1200×600)</option>
+                        <option value="2400x1200">High (2400×1200)</option>
+                        <option value="4800x2400" selected>Ultra (4800×2400)</option>
+                        <option value="7200x3600">Publication (7200×3600)</option>
+                        <option value="9600x4800">Maximum (9600×4800)</option>
+                    </select>
+                </div>
+                <div class="export-buttons">
+                    <button id="export-svg">Export as SVG</button>
+                    <button id="export-png">Export as PNG</button>
+                </div>
+            </div>
         </div>
     </div>
 

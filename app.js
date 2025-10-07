@@ -474,34 +474,99 @@ class ComplexFunctionApp {
 
     exportPNG() {
         try {
-            // Create a temporary canvas to combine both views
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = 1200;
-            tempCanvas.height = 600;
-            const ctx = tempCanvas.getContext('2d');
+            // Get selected resolution
+            const resolutionSelect = document.getElementById('export-resolution');
+            const resolution = resolutionSelect.value;
+            const [widthStr, heightStr] = resolution.split('x');
+            const totalWidth = parseInt(widthStr);
+            const totalHeight = parseInt(heightStr);
+
+            const canvasWidth = totalWidth / 2;
+            const canvasHeight = totalHeight;
+            const scale = canvasWidth / 600; // Scale factor from original 600px
+
+            // Create high-resolution temporary canvases for each renderer
+            const domainHiRes = this.createHighResolutionCanvas(this.domainRenderer, canvasWidth, canvasHeight, null);
+            const rangeHiRes = this.createHighResolutionCanvas(this.rangeRenderer, canvasWidth, canvasHeight, this.getCurrentTransformFunction());
+
+            // Create final combined canvas
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = totalWidth;
+            finalCanvas.height = totalHeight;
+            const ctx = finalCanvas.getContext('2d');
 
             // Fill background
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 1200, 600);
+            ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-            // Draw domain canvas
-            ctx.drawImage(this.domainRenderer.canvas, 0, 0);
+            // Draw high-resolution canvases
+            ctx.drawImage(domainHiRes, 0, 0);
+            ctx.drawImage(rangeHiRes, canvasWidth, 0);
 
-            // Draw range canvas
-            ctx.drawImage(this.rangeRenderer.canvas, 600, 0);
-
-            // Add labels
-            ctx.fillStyle = '#000000';
-            ctx.font = '16px Arial';
+            // Add labels with scaled font
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = `${Math.round(24 * scale)}px Arial`;
             ctx.textAlign = 'center';
-            ctx.fillText('Domain (Complex Plane)', 300, 30);
-            ctx.fillText('Range (Transformed)', 900, 30);
+            ctx.fillText('Domain (Complex Plane)', canvasWidth / 2, 40 * scale);
+            ctx.fillText('Range (Transformed)', canvasWidth + canvasWidth / 2, 40 * scale);
 
-            const dataURL = tempCanvas.toDataURL('image/png');
-            this.downloadFile(dataURL, 'complex-function-visualization.png', 'image/png', true);
+            const dataURL = finalCanvas.toDataURL('image/png');
+            this.downloadFile(dataURL, `complex-function-${resolution}.png`, 'image/png', true);
         } catch (error) {
             alert('Error exporting PNG: ' + error.message);
         }
+    }
+
+    getCurrentTransformFunction() {
+        if (!this.currentFunction) return null;
+
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        const transformWithParams = (z) => {
+            return this.currentFunction(z, this.currentParameters);
+        };
+
+        if (mode === 'parametric') {
+            const t = this.getAnimationParameter();
+            return (z) => {
+                // For export, we want the current animation state
+                const identity = z;
+                const transformed = transformWithParams(z);
+                const real = identity.real + t * (transformed.real - identity.real);
+                const imag = identity.imag + t * (transformed.imag - identity.imag);
+                return new Complex(real, imag);
+            };
+        }
+
+        return transformWithParams;
+    }
+
+    createHighResolutionCanvas(renderer, width, height, transformFunction) {
+        // Create high-resolution canvas
+        const hiResCanvas = document.createElement('canvas');
+        hiResCanvas.width = width;
+        hiResCanvas.height = height;
+
+        // Create temporary renderer with high resolution
+        const tempRenderer = new ComplexRenderer(null, {
+            centerX: renderer.centerX,
+            centerY: renderer.centerY,
+            scale: renderer.scale * (width / renderer.width)
+        });
+
+        // Override canvas and context
+        tempRenderer.canvas = hiResCanvas;
+        tempRenderer.ctx = hiResCanvas.getContext('2d');
+        tempRenderer.width = width;
+        tempRenderer.height = height;
+
+        // Render at high resolution
+        if (transformFunction) {
+            tempRenderer.render(transformFunction, 1);
+        } else {
+            tempRenderer.render();
+        }
+
+        return hiResCanvas;
     }
 
     downloadFile(content, filename, mimeType, isDataURL = false) {
