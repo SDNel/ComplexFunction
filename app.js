@@ -254,13 +254,18 @@ class ComplexFunctionApp {
         // Always render the domain
         this.domainRenderer.render();
 
+        // Create wrapper function that includes current parameters
+        const transformWithParams = (z) => {
+            return this.currentFunction(z, this.currentParameters);
+        };
+
         // Render the range based on mode
         if (mode === 'immediate') {
-            this.rangeRenderer.render(this.currentFunction);
+            this.rangeRenderer.render(transformWithParams);
         } else {
             // Parametric mode - render with current animation time
             const t = this.getAnimationParameter();
-            this.rangeRenderer.render(this.currentFunction, t);
+            this.rangeRenderer.render(transformWithParams, t);
         }
     }
 
@@ -325,7 +330,13 @@ class ComplexFunctionApp {
 
             // Export both canvases with current state
             const domainSVG = this.domainRenderer.exportAsSVG();
-            const rangeSVG = this.rangeRenderer.exportAsSVG(this.currentFunction, t);
+
+            // Create wrapper function that includes current parameters
+            const transformWithParams = (z) => {
+                return this.currentFunction(z, this.currentParameters);
+            };
+
+            const rangeSVG = this.rangeRenderer.exportAsSVG(transformWithParams, t);
 
             // Create combined SVG with proper structure
             const combinedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
