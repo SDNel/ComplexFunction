@@ -546,18 +546,57 @@ class ComplexFunctionApp {
         hiResCanvas.width = width;
         hiResCanvas.height = height;
 
-        // Create temporary renderer with high resolution
-        const tempRenderer = new ComplexRenderer(null, {
+        // Create a minimal renderer-like object
+        const tempRenderer = {
+            canvas: hiResCanvas,
+            ctx: hiResCanvas.getContext('2d'),
+            width: width,
+            height: height,
             centerX: renderer.centerX,
             centerY: renderer.centerY,
-            scale: renderer.scale * (width / renderer.width)
-        });
+            scale: renderer.scale * (width / renderer.width),
 
-        // Override canvas and context
-        tempRenderer.canvas = hiResCanvas;
-        tempRenderer.ctx = hiResCanvas.getContext('2d');
-        tempRenderer.width = width;
-        tempRenderer.height = height;
+            // Copy color scheme
+            colors: renderer.colors,
+
+            // Copy grid parameters
+            gridSpacing: renderer.gridSpacing,
+            radialLines: renderer.radialLines,
+            concentricCircles: renderer.concentricCircles,
+
+            // Add the methods we need
+            clear: function() {
+                this.ctx.fillStyle = this.colors.background;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+            },
+
+            complexToCanvas: function(z) {
+                const x = (z.real - this.centerX) * this.scale + this.width / 2;
+                const y = -(z.imag - this.centerY) * this.scale + this.height / 2;
+                return { x, y };
+            },
+
+            render: function(transformFunction = null, t = 1) {
+                this.clear();
+                if (transformFunction) {
+                    this.drawTransformedGrid(transformFunction, t);
+                } else {
+                    this.drawGrid();
+                    this.drawRadialLines();
+                    this.drawConcentricCircles();
+                }
+            }
+        };
+
+        // Copy the drawing methods from the original renderer
+        tempRenderer.drawGrid = renderer.drawGrid.bind(tempRenderer);
+        tempRenderer.drawRadialLines = renderer.drawRadialLines.bind(tempRenderer);
+        tempRenderer.drawConcentricCircles = renderer.drawConcentricCircles.bind(tempRenderer);
+        tempRenderer.drawTransformedGrid = renderer.drawTransformedGrid.bind(tempRenderer);
+        tempRenderer.drawTransformedGridLines = renderer.drawTransformedGridLines.bind(tempRenderer);
+        tempRenderer.drawTransformedRadialLines = renderer.drawTransformedRadialLines.bind(tempRenderer);
+        tempRenderer.drawTransformedCircles = renderer.drawTransformedCircles.bind(tempRenderer);
+        tempRenderer.interpolateTransform = renderer.interpolateTransform.bind(tempRenderer);
 
         // Render at high resolution
         if (transformFunction) {

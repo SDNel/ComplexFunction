@@ -328,15 +328,30 @@ class ComplexRenderer {
     // Interpolate between identity and transformation for animation
     interpolateTransform(z, transformFunction, t) {
         if (t >= 1) {
-            return transformFunction(z);
+            const result = transformFunction(z);
+            // Check for NaN or infinite values
+            if (!isFinite(result.real) || !isFinite(result.imag)) {
+                return new Complex(NaN, NaN);
+            }
+            return result;
         }
 
         const identity = z;
         const transformed = transformFunction(z);
 
+        // Check for NaN or infinite values in transformation
+        if (!isFinite(transformed.real) || !isFinite(transformed.imag)) {
+            return new Complex(NaN, NaN);
+        }
+
         // Linear interpolation
         const real = identity.real + t * (transformed.real - identity.real);
         const imag = identity.imag + t * (transformed.imag - identity.imag);
+
+        // Final check for interpolated result
+        if (!isFinite(real) || !isFinite(imag)) {
+            return new Complex(NaN, NaN);
+        }
 
         return new Complex(real, imag);
     }
@@ -497,37 +512,89 @@ class ComplexRenderer {
         // Vertical lines
         for (let real = -range; real <= range; real += spacing) {
             let pathData = '';
+            let validSegment = false;
             for (let i = 0; i <= steps; i++) {
                 const imag = -range + (2 * range * i) / steps;
                 const z = new Complex(real, imag);
                 const transformed = this.interpolateTransform(z, transformFunction, t);
+
+                // Skip NaN or infinite points
+                if (!isFinite(transformed.real) || !isFinite(transformed.imag)) {
+                    if (validSegment && pathData) {
+                        gridPath += pathData;
+                        pathData = '';
+                        validSegment = false;
+                    }
+                    continue;
+                }
+
                 const canvas = this.complexToCanvas(transformed);
 
-                if (i === 0) {
-                    pathData += `M ${canvas.x} ${canvas.y} `;
+                // Skip points outside reasonable bounds
+                if (!isFinite(canvas.x) || !isFinite(canvas.y) ||
+                    Math.abs(canvas.x) > 50000 || Math.abs(canvas.y) > 50000) {
+                    if (validSegment && pathData) {
+                        gridPath += pathData;
+                        pathData = '';
+                        validSegment = false;
+                    }
+                    continue;
+                }
+
+                if (!validSegment) {
+                    pathData += `M ${canvas.x.toFixed(2)} ${canvas.y.toFixed(2)} `;
+                    validSegment = true;
                 } else {
-                    pathData += `L ${canvas.x} ${canvas.y} `;
+                    pathData += `L ${canvas.x.toFixed(2)} ${canvas.y.toFixed(2)} `;
                 }
             }
-            gridPath += pathData;
+            if (validSegment && pathData) {
+                gridPath += pathData;
+            }
         }
 
         // Horizontal lines
         for (let imag = -range; imag <= range; imag += spacing) {
             let pathData = '';
+            let validSegment = false;
             for (let i = 0; i <= steps; i++) {
                 const real = -range + (2 * range * i) / steps;
                 const z = new Complex(real, imag);
                 const transformed = this.interpolateTransform(z, transformFunction, t);
+
+                // Skip NaN or infinite points
+                if (!isFinite(transformed.real) || !isFinite(transformed.imag)) {
+                    if (validSegment && pathData) {
+                        gridPath += pathData;
+                        pathData = '';
+                        validSegment = false;
+                    }
+                    continue;
+                }
+
                 const canvas = this.complexToCanvas(transformed);
 
-                if (i === 0) {
-                    pathData += `M ${canvas.x} ${canvas.y} `;
+                // Skip points outside reasonable bounds
+                if (!isFinite(canvas.x) || !isFinite(canvas.y) ||
+                    Math.abs(canvas.x) > 50000 || Math.abs(canvas.y) > 50000) {
+                    if (validSegment && pathData) {
+                        gridPath += pathData;
+                        pathData = '';
+                        validSegment = false;
+                    }
+                    continue;
+                }
+
+                if (!validSegment) {
+                    pathData += `M ${canvas.x.toFixed(2)} ${canvas.y.toFixed(2)} `;
+                    validSegment = true;
                 } else {
-                    pathData += `L ${canvas.x} ${canvas.y} `;
+                    pathData += `L ${canvas.x.toFixed(2)} ${canvas.y.toFixed(2)} `;
                 }
             }
-            gridPath += pathData;
+            if (validSegment && pathData) {
+                gridPath += pathData;
+            }
         }
 
         if (gridPath) {
