@@ -25,6 +25,13 @@ class ComplexFunctionApp {
             scale: 60
         });
 
+        // Initialize triangle
+        this.triangle = new Triangle();
+
+        // Pass triangle to renderers
+        this.domainRenderer.triangle = this.triangle;
+        this.rangeRenderer.triangle = this.triangle;
+
         this.setupEventHandlers();
         this.initializeControls();
         this.parseDefaultFunction();
@@ -120,6 +127,111 @@ class ComplexFunctionApp {
         document.getElementById('export-png').addEventListener('click', () => {
             this.exportPNG();
         });
+
+        // Triangle controls
+        this.setupTriangleEventHandlers();
+    }
+
+    setupTriangleEventHandlers() {
+        // Triangle type preset dropdown
+        const triangleTypeSelect = document.getElementById('triangle-type');
+        triangleTypeSelect.addEventListener('change', (e) => {
+            this.triangle.setPreset(e.target.value);
+            this.updateTriangleUI();
+            this.updateVisualization();
+        });
+
+        // Angle sliders with constraint logic
+        const angleASlider = document.getElementById('angle-a');
+        const angleBSlider = document.getElementById('angle-b');
+
+        angleASlider.addEventListener('input', (e) => {
+            const angleA = parseInt(e.target.value);
+            const angleB = parseInt(angleBSlider.value);
+            this.triangle.setAngles(angleA, angleB);
+            this.updateTriangleUI();
+            this.updateVisualization();
+        });
+
+        angleBSlider.addEventListener('input', (e) => {
+            const angleA = parseInt(angleASlider.value);
+            const angleB = parseInt(e.target.value);
+            this.triangle.setAngles(angleA, angleB);
+            this.updateTriangleUI();
+            this.updateVisualization();
+        });
+
+        // Size control
+        const sizeSlider = document.getElementById('triangle-size');
+        sizeSlider.addEventListener('input', (e) => {
+            this.triangle.setSize(parseFloat(e.target.value));
+            this.updateTriangleUI();
+            this.updateVisualization();
+        });
+
+        // Position control - click to place
+        const placeButton = document.getElementById('place-triangle');
+        let placingTriangle = false;
+
+        placeButton.addEventListener('click', () => {
+            placingTriangle = true;
+            placeButton.textContent = 'Click on Domain';
+            placeButton.style.backgroundColor = '#e74c3c';
+        });
+
+        // Add click handler to domain canvas for positioning
+        const domainCanvas = document.getElementById('domain-canvas');
+        domainCanvas.addEventListener('click', (e) => {
+            if (placingTriangle) {
+                const rect = domainCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Convert screen coordinates to complex plane coordinates
+                const complexPos = this.domainRenderer.screenToComplex(x, y);
+                this.triangle.setCenter(complexPos);
+
+                placingTriangle = false;
+                placeButton.textContent = 'Click to Place';
+                placeButton.style.backgroundColor = '#3498db';
+                this.updateTriangleUI();
+                this.updateVisualization();
+            }
+        });
+
+        // Visibility toggles
+        const showTriangleCheckbox = document.getElementById('show-triangle');
+        showTriangleCheckbox.addEventListener('change', (e) => {
+            this.triangle.setVisible(e.target.checked);
+            this.updateVisualization();
+        });
+
+        const showAnglesCheckbox = document.getElementById('show-angles');
+        showAnglesCheckbox.addEventListener('change', (e) => {
+            this.triangle.setShowAngles(e.target.checked);
+            this.updateVisualization();
+        });
+
+        // Initialize triangle UI
+        this.updateTriangleUI();
+    }
+
+    updateTriangleUI() {
+        // Update angle displays
+        document.getElementById('angle-a').value = this.triangle.angleA;
+        document.getElementById('angle-b').value = this.triangle.angleB;
+        document.getElementById('angle-a-display').textContent = `${this.triangle.angleA}°`;
+        document.getElementById('angle-b-display').textContent = `${this.triangle.angleB}°`;
+        document.getElementById('angle-c-display').textContent = `${this.triangle.angleC.toFixed(0)}°`;
+
+        // Update size display
+        document.getElementById('triangle-size').value = this.triangle.size;
+        document.getElementById('size-display').textContent = this.triangle.size.toFixed(1);
+
+        // Update position display
+        const center = this.triangle.center;
+        document.getElementById('triangle-position').textContent =
+            `(${center.real.toFixed(2)}, ${center.imag.toFixed(2)})`;
     }
 
     parseFunction(expression) {

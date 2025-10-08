@@ -662,4 +662,128 @@ class ComplexRenderer {
     exportAsPNG() {
         return this.canvas.toDataURL('image/png');
     }
+
+    // Coordinate conversion methods
+    screenToComplex(screenX, screenY) {
+        return this.canvasToComplex(screenX, screenY);
+    }
+
+    // Triangle rendering methods
+    drawTriangle(triangle, transformFunction = null, t = 1) {
+        if (!triangle || !triangle.visible) return;
+
+        const vertices = transformFunction ?
+            triangle.getTransformedVertices(transformFunction) :
+            triangle.getWorldVertices();
+
+        // Check for invalid vertices
+        if (!vertices.A || !vertices.B || !vertices.C ||
+            !isFinite(vertices.A.real) || !isFinite(vertices.A.imag) ||
+            !isFinite(vertices.B.real) || !isFinite(vertices.B.imag) ||
+            !isFinite(vertices.C.real) || !isFinite(vertices.C.imag)) {
+            return;
+        }
+
+        // Convert to canvas coordinates
+        const canvasA = this.complexToCanvas(vertices.A);
+        const canvasB = this.complexToCanvas(vertices.B);
+        const canvasC = this.complexToCanvas(vertices.C);
+
+        // Draw triangle outline
+        this.ctx.strokeStyle = triangle.colors.triangle;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(canvasA.x, canvasA.y);
+        this.ctx.lineTo(canvasB.x, canvasB.y);
+        this.ctx.lineTo(canvasC.x, canvasC.y);
+        this.ctx.closePath();
+        this.ctx.stroke();
+
+        // Draw angle measurements if enabled
+        if (triangle.showAngles) {
+            this.drawAngleMeasurements(triangle, vertices, {
+                A: canvasA,
+                B: canvasB,
+                C: canvasC
+            });
+        }
+    }
+
+    drawAngleMeasurements(triangle, vertices, canvasVertices) {
+        const measuredAngles = triangle.getMeasuredAngles(vertices);
+
+        // Draw angle arcs and labels
+        this.drawAngleArc(canvasVertices.A, canvasVertices.B, canvasVertices.C,
+            triangle.colors.A, measuredAngles.A);
+        this.drawAngleArc(canvasVertices.B, canvasVertices.A, canvasVertices.C,
+            triangle.colors.B, measuredAngles.B);
+        this.drawAngleArc(canvasVertices.C, canvasVertices.A, canvasVertices.B,
+            triangle.colors.C, measuredAngles.C);
+    }
+
+    drawAngleArc(vertex, point1, point2, color, angleDegrees) {
+        if (!isFinite(angleDegrees)) return;
+
+        const arcRadius = 25; // pixels
+
+        // Calculate vectors from vertex to points
+        const v1 = { x: point1.x - vertex.x, y: point1.y - vertex.y };
+        const v2 = { x: point2.x - vertex.x, y: point2.y - vertex.y };
+
+        // Calculate angles
+        const angle1 = Math.atan2(v1.y, v1.x);
+        const angle2 = Math.atan2(v2.y, v2.x);
+
+        // Ensure we draw the smaller arc
+        let startAngle = angle1;
+        let endAngle = angle2;
+        if (Math.abs(endAngle - startAngle) > Math.PI) {
+            if (endAngle > startAngle) {
+                endAngle -= 2 * Math.PI;
+            } else {
+                startAngle -= 2 * Math.PI;
+            }
+        }
+
+        // Draw arc
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(vertex.x, vertex.y, arcRadius, startAngle, endAngle);
+        this.ctx.stroke();
+
+        // Draw angle label
+        const labelAngle = (startAngle + endAngle) / 2;
+        const labelRadius = arcRadius + 15;
+        const labelX = vertex.x + labelRadius * Math.cos(labelAngle);
+        const labelY = vertex.y + labelRadius * Math.sin(labelAngle);
+
+        this.ctx.fillStyle = color;
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(`${angleDegrees.toFixed(0)}°`, labelX, labelY);
+    }
+
+    // Override render method to include triangle
+    render(transformFunction = null, t = 1) {
+        // Store current render state for mouse interactions
+        this.currentTransformFunction = transformFunction;
+        this.currentT = t;
+
+        this.clear();
+
+        if (transformFunction) {
+            this.drawTransformedGrid(transformFunction, t);
+        } else {
+            this.drawGrid();
+            this.drawRadialLines();
+            this.drawConcentricCircles();
+        }
+
+        // Draw triangle if it exists (passed from app)
+        if (this.triangle) {
+            this.drawTriangle(this.triangle, transformFunction, t);
+        }
+    }
 }

@@ -70,6 +70,61 @@
                 <h3>Parameters</h3>
                 <div id="parameter-sliders"></div>
             </div>
+
+            <div class="triangle-panel" id="triangle-panel">
+                <h3>Shape Demonstration</h3>
+                <div class="triangle-controls">
+                    <div class="triangle-preset">
+                        <label for="triangle-type">Triangle Type:</label>
+                        <select id="triangle-type">
+                            <option value="equilateral">Equilateral (60°-60°-60°)</option>
+                            <option value="right">Right Triangle (90°-45°-45°)</option>
+                            <option value="isosceles">Isosceles (70°-55°-55°)</option>
+                            <option value="acute">Acute Scalene (80°-60°-40°)</option>
+                            <option value="obtuse">Obtuse (120°-30°-30°)</option>
+                        </select>
+                    </div>
+
+                    <div class="angle-controls">
+                        <div class="angle-slider">
+                            <label for="angle-a">Angle A (red):</label>
+                            <input type="range" id="angle-a" min="5" max="170" step="1" value="60">
+                            <span id="angle-a-display">60°</span>
+                        </div>
+                        <div class="angle-slider">
+                            <label for="angle-b">Angle B (blue):</label>
+                            <input type="range" id="angle-b" min="5" max="170" step="1" value="60">
+                            <span id="angle-b-display">60°</span>
+                        </div>
+                        <div class="angle-display">
+                            <label>Angle C (green):</label>
+                            <span id="angle-c-display">60°</span>
+                        </div>
+                    </div>
+
+                    <div class="triangle-properties">
+                        <div class="size-control">
+                            <label for="triangle-size">Size:</label>
+                            <input type="range" id="triangle-size" min="0.1" max="2.0" step="0.1" value="0.5">
+                            <span id="size-display">0.5</span>
+                        </div>
+                        <div class="position-control">
+                            <label>Position:</label>
+                            <button id="place-triangle" class="control-btn">Click to Place</button>
+                            <span id="triangle-position">(0, 0)</span>
+                        </div>
+                    </div>
+
+                    <div class="triangle-toggle">
+                        <label>
+                            <input type="checkbox" id="show-triangle" checked> Show Triangle
+                        </label>
+                        <label>
+                            <input type="checkbox" id="show-angles" checked> Show Angle Measurements
+                        </label>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="export-controls">
@@ -95,6 +150,7 @@
 
     <script src="complex.js"></script>
     <script src="parser.js"></script>
+    <script src="triangle.js"></script>
     <script src="renderer.js"></script>
     <script src="app.js"></script>
 </body>
