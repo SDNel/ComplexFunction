@@ -443,7 +443,7 @@ class ComplexFunctionApp {
                 t = this.getAnimationParameter();
             }
 
-            // Export both canvases with current state
+            // Export both canvases with current state as separate SVGs
             const domainSVG = this.domainRenderer.exportAsSVG();
 
             // Create wrapper function that includes current parameters
@@ -453,20 +453,19 @@ class ComplexFunctionApp {
 
             const rangeSVG = this.rangeRenderer.exportAsSVG(transformWithParams, t);
 
-            // Create combined SVG with proper structure
-            const combinedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
-    <rect width="1200" height="600" fill="#f8f9fa"/>
-    <g id="domain">
-        ${domainSVG.replace('<?xml version="1.0" encoding="UTF-8"?>', '').replace(/<svg[^>]*>/, '').replace('</svg>', '')}
-    </g>
-    <g id="range" transform="translate(600, 0)">
-        ${rangeSVG.replace('<?xml version="1.0" encoding="UTF-8"?>', '').replace(/<svg[^>]*>/, '').replace('</svg>', '')}
-    </g>
-    <text x="300" y="30" text-anchor="middle" font-family="Arial" font-size="16" fill="#2c3e50">Domain (Complex Plane)</text>
-    <text x="900" y="30" text-anchor="middle" font-family="Arial" font-size="16" fill="#2c3e50">Range (Transformed)</text>
-</svg>`;
+            // Add labels to each SVG
+            const domainSVGWithLabel = this.addLabelToSVG(domainSVG, 'Domain (Complex Plane)');
+            const rangeSVGWithLabel = this.addLabelToSVG(rangeSVG, 'Range (Transformed)');
 
-            this.downloadFile(combinedSVG, 'complex-function-visualization.svg', 'image/svg+xml');
+            // Download both files
+            this.downloadFile(domainSVGWithLabel, 'complex-function-domain.svg', 'image/svg+xml');
+
+            // Small delay to ensure first download starts
+            setTimeout(() => {
+                this.downloadFile(rangeSVGWithLabel, 'complex-function-range.svg', 'image/svg+xml');
+            }, 100);
+
+            alert(`Two SVG files exported:\n• complex-function-domain.svg\n• complex-function-range.svg`);
         } catch (error) {
             alert('Error exporting SVG: ' + error.message);
         }
@@ -481,40 +480,49 @@ class ComplexFunctionApp {
             const totalWidth = parseInt(widthStr);
             const totalHeight = parseInt(heightStr);
 
-            const canvasWidth = totalWidth / 2;
+            // Use full resolution for each separate image
+            const canvasWidth = totalWidth;
             const canvasHeight = totalHeight;
             const scale = canvasWidth / 600; // Scale factor from original 600px
 
-            // Create high-resolution temporary canvases for each renderer
+            // Create high-resolution canvases for each renderer
             const domainHiRes = this.createHighResolutionCanvas(this.domainRenderer, canvasWidth, canvasHeight, null);
             const rangeHiRes = this.createHighResolutionCanvas(this.rangeRenderer, canvasWidth, canvasHeight, this.getCurrentTransformFunction());
 
-            // Create final combined canvas
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = totalWidth;
-            finalCanvas.height = totalHeight;
-            const ctx = finalCanvas.getContext('2d');
+            // Add labels to each canvas
+            this.addLabelToCanvas(domainHiRes, 'Domain (Complex Plane)', scale);
+            this.addLabelToCanvas(rangeHiRes, 'Range (Transformed)', scale);
 
-            // Fill background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, totalWidth, totalHeight);
+            // Export both images separately
+            const domainDataURL = domainHiRes.toDataURL('image/png');
+            const rangeDataURL = rangeHiRes.toDataURL('image/png');
 
-            // Draw high-resolution canvases
-            ctx.drawImage(domainHiRes, 0, 0);
-            ctx.drawImage(rangeHiRes, canvasWidth, 0);
+            // Download both files
+            this.downloadFile(domainDataURL, `complex-function-domain-${resolution}.png`, 'image/png', true);
 
-            // Add labels with scaled font
-            ctx.fillStyle = '#2c3e50';
-            ctx.font = `${Math.round(24 * scale)}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText('Domain (Complex Plane)', canvasWidth / 2, 40 * scale);
-            ctx.fillText('Range (Transformed)', canvasWidth + canvasWidth / 2, 40 * scale);
+            // Small delay to ensure first download starts
+            setTimeout(() => {
+                this.downloadFile(rangeDataURL, `complex-function-range-${resolution}.png`, 'image/png', true);
+            }, 100);
 
-            const dataURL = finalCanvas.toDataURL('image/png');
-            this.downloadFile(dataURL, `complex-function-${resolution}.png`, 'image/png', true);
+            alert(`Two PNG files exported:\n• complex-function-domain-${resolution}.png\n• complex-function-range-${resolution}.png`);
         } catch (error) {
             alert('Error exporting PNG: ' + error.message);
         }
+    }
+
+    addLabelToCanvas(canvas, label, scale) {
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#2c3e50';
+        ctx.font = `${Math.round(24 * scale)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(label, canvas.width / 2, 40 * scale);
+    }
+
+    addLabelToSVG(svgString, label) {
+        // Add title to SVG by inserting text element before closing </svg>
+        const labelElement = `<text x="300" y="30" text-anchor="middle" font-family="Arial" font-size="18" fill="#2c3e50" font-weight="bold">${label}</text>`;
+        return svgString.replace('</svg>', `${labelElement}</svg>`);
     }
 
     getCurrentTransformFunction() {
